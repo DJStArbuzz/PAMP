@@ -1,3 +1,17 @@
+sumDigits' :: String -> Int
+sumDigits' = foldl(\acc c -> acc + read[c]) 0
+
+sumDigits :: String -> Int
+sumDigits = foldl(\acc c -> if c >= '0' && c <= '9' then acc + fromEnum c - fromEnum '0' else acc) 0
+
+applyListTransforms :: [a -> a] -> a -> a
+applyListTransforms fs = foldl (flip (.)) id fs
+
+
+
+
+
+
 drop' :: Int -> [a] -> [a]
 drop' n xs = foldr(\x r k -> if k <= 0 then x : r (k - 1) else r (k - 1)) (const []) xs n
 
