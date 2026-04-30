@@ -60,7 +60,7 @@ winnerCats cats =
   in case results of
        [] -> "Котов не было"
        _  -> let (n, d) = maximumBy (compare `on` snd) results
-             in n ++ " прожил " ++ show d ++ " дней (победитель!)"
+             in n ++ " прожил " ++ show d ++ " дней"
 
 main = do
   let kot1 = cat ("Вещев", 50, 60, 0, 10, Yard)
@@ -68,16 +68,16 @@ main = do
   let kot3 = cat ("Мерзун", 70, 70, 0, 5, MaineCoon)
   let allCats = [kot1, kot2, kot3]
 
-  putStrLn "=== Начальное состояние котов ==="
+  putStrLn "Три кота в общежитии"
   mapM_ (putStrLn . info) allCats
 
-  putStrLn "\n=== Симуляция выживания ==="
+  putStrLn "\nСимуляция"
   let results = simulateAll allCats
   mapM_ (\(n, d) -> putStrLn $ n ++ " прожил " ++ show d ++ " дней") results
 
-  putStrLn "\n=== Победитель ==="
+  putStrLn "\nРезультат"
   putStrLn $ winnerCats allCats
 
-  putStrLn "\n=== Пример кормления ==="
+  putStrLn "\nКормление"
   let fedKot1 = feed kot1 20
   putStrLn $ "Вещев после кормления: сытость " ++ show (fullness fedKot1)
