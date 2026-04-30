@@ -1,78 +1,83 @@
--- Синонимы типов
-type Name     = String
-type Satiety  = Int    
-type Mood     = Int  
-type Days     = Int
-type Fussiness = Int   
+import Data.List (maximumBy)
+import Data.Function (on)
 
--- Породы 
+type Name = String
+type Fullness = Int
+type Mood = Int
+type Days = Int
+type Fussy = Int
+
 data Breed = Yard | Siamese | MaineCoon | Sphynx | British | Ginger
-  deriving (Show, Eq) 
+  deriving (Show, Eq)
 
--- Функциональное представление кота 
-data Cat = Cat
-  { feed         :: Int -> Cat          -- покормить
-  , pet          :: Int -> Cat          -- погладить
-  , info         :: String              -- инфоблок о коте
-  , getName      :: Name
-  , getSatiety   :: Satiety
-  , getMood      :: Mood
-  , getDays      :: Days
-  , getFussiness :: Fussiness
-  , getBreed     :: Breed
-  }
+cat :: (Name, Fullness, Mood, Days, Fussy, Breed) -> ((Name, Fullness, Mood, Days, Fussy, Breed) -> a) -> a
+cat state = \msg -> msg state
 
--- Создание кота (замыкание – все функции захватывают текущие параметры)
-makeCat :: Name -> Satiety -> Mood -> Days -> Fussiness -> Breed -> Cat
-makeCat n s m d f b = Cat
-  { feed         = \amount -> makeCat n (min 100 (s + amount)) m d f b
-  , pet          = \amount -> makeCat n s (min 100 (m + amount)) d f b
-  , info         = n ++ ", сытость: " ++ show s ++ ", настроение: " ++ show m ++
-                   ", дней в общаге: " ++ show d ++ ", привередливость: " ++ show f ++
-                   ", порода: " ++ show b
-  , getName      = n
-  , getSatiety   = s
-  , getMood      = m
-  , getDays      = d
-  , getFussiness = f
-  , getBreed     = b
-  }
+_name      (n,_,_,_,_,_ ) = n
+_fullness  (_,f,_,_,_, _) = f
+_mood      (_,_,m,_,_, _) = m
+_days      (_,_,_,d,_,_ ) = d
+_fussiness (_,_,_,_,fs,_) = fs
+_breed     (_,_,_,_,_,b ) = b
 
--- Один день: падение характеристик. Если сытость или настроение <= 0, кот уходит.
-nextDay :: Cat -> (Bool, Cat)
-nextDay cat =
-  let newSat = getSatiety cat - getFussiness cat
-      newMood = getMood cat - getFussiness cat
-  in if newSat <= 0 || newMood <= 0
-     then (False, cat)
-     else (True, makeCat (getName cat) newSat newMood (getDays cat + 1) (getFussiness cat) (getBreed cat))
+name someCat = someCat _name
+fullness someCat = someCat _fullness
+mood someCat = someCat _mood
+days someCat = someCat _days
+fussiness someCat = someCat _fussiness
+breed someCat = someCat _breed
 
--- симуляция выживания нескольких котов
--- Если сытость или настроение опускается до нуля,
--- то кот убегает на улицу и выбывает. Побеждает кот,
--- продержавшийся в общаге дольше всех.
-simulate :: [Cat] -> String
-simulate cats = go cats 1 ""
+feed someCat amount =
+  someCat (\(n,f,m,d,fs,b) ->
+    cat (n, min 100 (f + amount), m, d, fs, b))
+
+pet someCat amount =
+  someCat (\(n,f,m,d,fs,b) ->
+    cat (n, f, min 100 (m + amount), d, fs, b))
+
+info someCat =
+  someCat (\(n,f,m,d,fs,b) ->
+    n ++ ", порода: " ++ show b ++
+    ", сытость: " ++ show f ++ ", настроение: " ++ show m ++
+    ", дней в общаге: " ++ show d ++ ", привередливость: " ++ show fs)
+
+simulateOne someCat =
+  someCat (\(n,f,m,d,fs,b) ->
+    go n f m d fs b)
   where
-    go [] _ acc = acc ++ "\nВсе коты убежали"
-    go [c] day acc = acc ++ "\nДень " ++ show day ++ ": Победитель " ++ getName c ++
-                     " (прожил " ++ show (getDays c) ++ " дней)\n"
-    go alive day acc =
-        let dayStr = "\nДень " ++ show day ++ "\n" ++ unlines (map info alive)
-            (alive', acc') = foldl step ([], acc ++ dayStr) alive
-        in go alive' (day + 1) acc'
+    go n f m d fs b =
+      let newF = f - fs
+          newM = m - fs
+          newD = d + 1
+      in if newF <= 0 || newM <= 0
+         then (n, newD)
+         else go n newF newM newD fs b
 
-    step :: ([Cat], String) -> Cat -> ([Cat], String)
-    step (list, str) cat =
-        case nextDay cat of
-            (True, c)  -> (c : list, str)
-            (False, _) -> (list, str ++ getName cat ++ " убежал\n")
+simulateAll cats = map simulateOne cats
 
-main :: IO ()
+winnerCats cats =
+  let results = simulateAll cats
+  in case results of
+       [] -> "Котов не было"
+       _  -> let (n, d) = maximumBy (compare `on` snd) results
+             in n ++ " прожил " ++ show d ++ " дней (победитель!)"
+
 main = do
-    let kot1 = makeCat "Вещев" 50 60 0 10 Yard
-        kot2 = makeCat "Семенов" 40 50 0 15 Siamese
-        kot3 = makeCat "Мерзун" 70 70 0 5 MaineCoon
-    putStrLn "Три кота в общежитии:"
-    mapM_ (putStrLn . info) [kot1, kot2, kot3]
-    putStr $ simulate [kot1, kot2, kot3]
+  let kot1 = cat ("Вещев", 50, 60, 0, 10, Yard)
+  let kot2 = cat ("Семенов", 40, 50, 0, 15, Siamese)
+  let kot3 = cat ("Мерзун", 70, 70, 0, 5, MaineCoon)
+  let allCats = [kot1, kot2, kot3]
+
+  putStrLn "=== Начальное состояние котов ==="
+  mapM_ (putStrLn . info) allCats
+
+  putStrLn "\n=== Симуляция выживания ==="
+  let results = simulateAll allCats
+  mapM_ (\(n, d) -> putStrLn $ n ++ " прожил " ++ show d ++ " дней") results
+
+  putStrLn "\n=== Победитель ==="
+  putStrLn $ winnerCats allCats
+
+  putStrLn "\n=== Пример кормления ==="
+  let fedKot1 = feed kot1 20
+  putStrLn $ "Вещев после кормления: сытость " ++ show (fullness fedKot1)
