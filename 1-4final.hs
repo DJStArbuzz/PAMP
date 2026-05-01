@@ -1,49 +1,49 @@
 type Name = String
-type Fullness = Int
+type Satiety = Int
 type Mood = Int
 type Days = Int
-type Fussy = Int
+type Fussiness = Int
 
 data Breed = Yard | Siamese | MaineCoon | Sphynx | British | Ginger
   deriving (Show, Eq)
 
-cat :: (Name, Fullness, Mood, Days, Fussy, Breed) -> ((Name, Fullness, Mood, Days, Fussy, Breed) -> a) -> a
+cat :: (Name, Satiety, Mood, Days, Fussiness, Breed) -> ((Name, Satiety, Mood, Days, Fussiness, Breed) -> a) -> a
 cat state = \msg -> msg state
 
-catName      (n,_,_,_,_,_ ) = n
-catFullness  (_,f,_,_,_, _) = f
-catMood      (_,_,m,_,_, _) = m
-catDays      (_,_,_,d,_,_ ) = d
-catFussiness (_,_,_,_,fs,_) = fs
-catBreed     (_,_,_,_,_,b ) = b
+catName      (n, _, _, _, _,_ ) = n
+catSatiety   (_, s, _, _, _, _) = s
+catMood      (_, _, m, _, _, _) = m
+catDays      (_, _, _, d, _, _) = d
+catFussiness (_, _, _, _, f, _) = f
+catBreed     (_, _, _, _, _, b) = b
 
-name someCat = someCat catName 
-fullness someCat = someCat catFullness
-mood someCat = someCat catMood
-days someCat = someCat catDays
+name      someCat = someCat catName
+satiety   someCat = someCat catSatiety
+mood      someCat = someCat catMood
+days      someCat = someCat catDays
 fussiness someCat = someCat catFussiness
-breed someCat = someCat catBreed
+breed     someCat = someCat catBreed
 
-feed someCat amount = someCat (\(n,f,m,d,fs,b) -> cat (n, min 100 (f + amount), m, d, fs, b))
+feed someCat amount = someCat (\(n,s,m,d,f,b) -> cat (n, min 100 (s + amount), m, d, f, b))
 
-pet someCat amount = someCat (\(n,f,m,d,fs,b) -> cat (n, f, min 100 (m + amount), d, fs, b))
+pet someCat amount = someCat (\(n,s,m,d,f,b) -> cat (n, s, min 100 (m + amount), d, f, b))
 
 info someCat =
-  someCat (\(n,f,m,d,fs,b) ->
+  someCat (\(n,s,m,d,f,b) ->
     n ++ ", порода: " ++ show b ++
-    ", сытость: " ++ show f ++ ", настроение: " ++ show m ++
-    ", дней в общаге: " ++ show d ++ ", привередливость: " ++ show fs)
+    ", сытость: " ++ show s ++ ", настроение: " ++ show m ++
+    ", дней в общаге: " ++ show d ++ ", привередливость: " ++ show f)
 
 battleOne someCat =
-  someCat (\(n,f,m,d,fs,b) -> go n f m d fs b)
+  someCat (\(n,s,m,d,f,b) -> go n s m d f b)
   where
-    go n f m d fs b =
-      let newF = f - fs
-          newM = m - fs
+    go n s m d f b =
+      let newF = s - f
+          newM = m - f
           newD = d + 1
       in if newF <= 0 || newM <= 0
          then (n, newD)
-         else go n newF newM newD fs b
+         else go n newF newM newD f b
 
 battleAll cats = map battleOne cats
 
@@ -52,17 +52,16 @@ winnerCats cats =
     [] -> "Котов не было"
     xs -> let (n, d) = foldr1 (\(n1,d1) (n2,d2) -> if d1 >= d2 then (n1,d1) else (n2,d2)) xs
           in n ++ " прожил " ++ show d ++ " дней"
-          
+
 main = do
   let kot1 = cat ("Вещев", 50, 60, 0, 10, Yard)
   let kot2 = cat ("Семенов", 40, 50, 0, 15, Siamese)
   let kot3 = cat ("Мерзун", 40, 50, 0, 15, MaineCoon)
   let allCats = [kot1, kot2, kot3]
 
-
   putStrLn "\nКормление"
   let fedKot1 = feed kot1 20
-  putStrLn $ "Вещев после кормления: сытость " ++ show (fullness fedKot1)
+  putStrLn $ "Вещев после кормления: сытость " ++ show (satiety fedKot1)
   
   putStrLn "Три кота в общежитии"
   mapM_ (putStrLn . info) allCats
