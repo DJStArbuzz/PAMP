@@ -1,6 +1,6 @@
 type Name      = String
-type Satiety   = Int     
-type Mood      = Int     
+type Satiety   = Int
+type Mood      = Int
 type Days      = Int
 type Fussiness = Int
 
@@ -14,52 +14,56 @@ data Cat = Cat
   , days      :: Days
   , fussiness :: Fussiness
   , breed     :: Breed
-  }
+  } deriving (Show, Eq)
 
-feed :: Int -> Cat -> Cat
-feed amount cat = cat { satiety = min 100 (satiety cat + amount) }
+feed :: Cat -> Int -> Cat
+feed cat amount = cat { satiety = min 100 (satiety cat + amount) }
 
-pet :: Int -> Cat -> Cat
-pet amount cat = cat { mood = min 100 (mood cat + amount) }
+pet :: Cat -> Int -> Cat
+pet cat amount = cat { mood = min 100 (mood cat + amount) }
 
-instance Show Cat where
-  show cat = name cat ++ ", порода: " ++ show (breed cat) ++
-             ", сытость: " ++ show (satiety cat) ++
-             ", настроение: " ++ show (mood cat) ++
-             ", дней: " ++ show (days cat) ++
-             ", привередливость: " ++ show (fussiness cat)
+info :: Cat -> String
+info cat = 
+  name cat ++ ", порода: " ++ show (breed cat) ++
+  ", сытость: " ++ show (satiety cat) ++ ", настроение: " ++ show (mood cat) ++
+  ", дней в общаге: " ++ show (days cat) ++ ", привередливость: " ++ show (fussiness cat)
 
-nextDay :: Cat -> (Bool, Cat)
-nextDay cat =
-  let newSat = satiety cat - fussiness cat
-      newMood = mood cat - fussiness cat
-  in if newSat <= 0 || newMood <= 0
-     then (False, cat)
-     else (True, cat { satiety = newSat, mood = newMood, days = days cat + 1 })
-
-simulate :: [Cat] -> String
-simulate cats = go cats 1 ""
+battleOne :: Cat -> (Name, Days)
+battleOne cat = go (satiety cat) (mood cat) 0
   where
-    go [] _ acc = acc ++ "\nВсе коты убежали"
-    go [c] day acc = acc ++ "\nДень " ++ show day ++ ": Победитель " ++ name c ++
-                     " (прожил " ++ show (days c) ++ " дней)\n"
-    go alive day acc =
-      let dayStr = "\nДень " ++ show day ++ "\n" ++ unlines (map show alive)
-          (alive', acc') = foldl step ([], acc ++ dayStr) alive
-      in go alive' (day + 1) acc'
+    go s m d =
+      let newS = s - fussiness cat
+          newM = m - fussiness cat
+          newD = d + 1
+      in if newS <= 0 || newM <= 0
+         then (name cat, newD)
+         else go newS newM newD
 
-    step :: ([Cat], String) -> Cat -> ([Cat], String)
-    step (list, str) cat =
-      case nextDay cat of
-        (True, c)  -> (c : list, str)
-        (False, _) -> (list, str ++ name cat ++ " убежал\n")
+battleAll :: [Cat] -> [(Name, Days)]
+battleAll cats = map battleOne cats
 
+winnerCats :: [Cat] -> String
+winnerCats cats =
+  case battleAll cats of
+    [] -> "Котов не было"
+    xs -> let (n, d) = foldr1 (\(n1,d1) (n2,d2) -> if d1 >= d2 then (n1,d1) else (n2,d2)) xs
+          in n ++ " прожил " ++ show d ++ " дней"
 
-main :: IO ()
 main = do
-  let kot1 = Cat "Вещев"     50 60 0 10 Yard
-      kot2 = Cat "Семенов"   40 50 0 15 Siamese
-      kot3 = Cat "Мерзун"    70 70 0 5  MaineCoon
-  putStrLn "Три кота в общежитии:"
-  mapM_ print [kot1, kot2, kot3]
-  putStr $ simulate [kot1, kot2, kot3]
+  let kot1 = Cat { name = "Вещев", satiety = 50, mood = 60, days = 0, fussiness = 10, breed = Yard }
+  let kot2 = Cat { name = "Семенов", satiety = 40, mood = 50, days = 0, fussiness = 15, breed = Siamese }
+  let kot3 = Cat { name = "Мерзун", satiety = 40, mood = 50, days = 0, fussiness = 15, breed = MaineCoon }
+  let allCats = [kot1, kot2, kot3]
+
+  putStrLn "\nКормление"
+  let fedKot1 = feed kot1 20
+  putStrLn $ "Вещев после кормления: сытость " ++ show (satiety fedKot1)
+
+  putStrLn "Три кота в общежитии"
+  mapM_ (putStrLn . info) allCats
+
+  let results = battleAll allCats
+  mapM_ (\(n, d) -> putStrLn $ n ++ " прожил " ++ show d ++ " дней") results
+
+  putStrLn "\nРезультат"
+  putStrLn $ winnerCats allCats
