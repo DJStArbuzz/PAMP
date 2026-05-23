@@ -1,11 +1,67 @@
 import qualified Data.Map as Map
+import Data.Maybe (isJust, isNothing, 
+                   fromMaybe, mapMaybe, catMaybes)
 
+-- data Maybe a = Nothing | Just 
 type ItemId = Int
 data LavkaItem = LavkaItem 
   {
     itemName :: String
     , itemPrice :: Int
   } deriving (Show, Eq)
+
+data Order = Order 
+  {
+    orderItems :: [ItemId]
+    , orderTip :: Maybe Int
+    , orderPromo :: Maybe String
+  } deriving Show 
+
+order1 :: Order 
+order1 = Order 
+  {
+    orderItems = [101, 103, 106]
+    , orderTip = Just 100
+    , orderPromo = Nothing
+  }
+
+order2 :: Order 
+order2 = Order 
+  {
+    orderItems = [102, 104]
+    , orderTip = Nothing
+    , orderPromo = Just "SUMMER26"
+  }
+
+
+basePrice :: [ItemId] -> Int
+basePrice = sum . mapMaybe priceById
+
+applyPromo :: Maybe String -> Int -> Int
+applyPromo Nothing total = total
+applyPromo (Just "SUMMER26") total = 
+  total * 75 `div` 100
+applyPromo (Just _) total = total
+
+addTip :: Maybe Int -> Int -> Int
+addTip tip total = total + fromMaybe 0 tip
+
+orderTotal :: Order -> Int 
+orderTotal o = 
+  addTip (orderTip o)
+    ((applyPromo (orderPromo o))
+      (basePrice (orderItems o)))
+
+
+allIds :: [ItemId]
+allIds = [100..110]
+
+allLookups :: [Maybe LavkaItem]
+allLookups = map (\i ->Map.lookup i catalog) allIds
+
+availableItems :: [LavkaItem]
+availableItems = 
+  mapMaybe (\i -> Map.lookup i catalog) allIds
 
 catalog :: Map.Map ItemId LavkaItem 
 catalog = Map.fromList
@@ -18,8 +74,15 @@ catalog = Map.fromList
 
   ]
 
+showItem :: Maybe LavkaItem -> String
+showItem Nothing = "Item not found"
+showItem (Just item) =
+  itemName item ++ ": " ++ show (itemPrice item) ++ "RUB"
 
-
+priceById :: ItemId -> Maybe Int
+priceById i = case Map.lookup i catalog of
+  Nothing -> Nothing 
+  Just item -> Just (itemPrice item)
 
 
 
