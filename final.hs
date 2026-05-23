@@ -9,6 +9,16 @@ allSchedules = Map.fromList
   
   ]
 
+averageGrade :: IO ()
+averageGrade = do
+  putStrLn "How many grades?"
+  n <- readLn :: IO Int
+  grades <- replicateM n getLine
+  let nums = map read grades :: [Int]
+  let avg = sum nums `div` n
+  putStrLn ("Average: " ++ show avg)
+
+
 showArgs :: IO ()
 showArgs = do 
   args <- getArgs
@@ -65,14 +75,20 @@ sumTwoLines = do
   let total = read a + read b :: Int
   putStrLn ("Sum is " ++ show total)
 
+parseLine :: String -> (String, Lesson)
+parseLine line =
+  let [d, t, s, r] = word line
+  in (d, Lesson, t s r)
+  
+readSchedule:: IO ()
+readSchedule = do
+  contents <- getContents
+  let entries = map parseLine (lines contents)
+  mapM_ printEntry entries
+    where printEntry (d, 1) = putStrLn (d ++ ": " +)
+
 
 main :: IO ()
 main = do
-  args <- getArgs
-  let day = if null args
-            then "monday"
-            else head args
-  case Map.lookup day allSchedules of
-    Nothing -> putStrLn ("Unknown day: " ++ day)
-    Just s -> print s 
+  averageGrade
     
